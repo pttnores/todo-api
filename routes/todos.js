@@ -2,6 +2,7 @@ var express = require("express");
 var router = express.Router();
 //var bodyParser = require("body-parser");
 var _ = require("underscore");
+var db = require("../db.js");
 
 var todos = [
   /*{id: 1, description: "Finish Node Course", completed: false},
@@ -11,76 +12,87 @@ var todos = [
 
 var todoNextId = 1;
 
-/* GET todos collection */
-router.get("", function (req, res, next) {
+/* GET todos?completed=true&q=work collection */
+router.get("", function(req, res, next) {
   var queryParams = req.query;
-  var todoList= todos;
+  var todoList = todos;
 
   if (queryParams.hasOwnProperty("completed") && queryParams.completed === "true") {
-    todoList = _.where(todos, {completed: true});
+    todoList = _.where(todos, {
+      completed: true
+    });
   } else if (queryParams.hasOwnProperty("completed") && queryParams.completed === "false") {
-    todoList = _.where(todos, {completed: false});
+    todoList = _.where(todos, {
+      completed: false
+    });
+  }
+
+  if (queryParams.hasOwnProperty("q") && queryParams.q.length > 0) {
+    console.log(" filter " + queryParams.q.toString());
+    todoList = _.filter(todoList, function(todoItem) {
+      return todoItem.description.indexOf(queryParams.q) > -1;
+    });
   }
 
   res.json(todoList);
 });
 
 /* GET todos item */
-router.get("/:id", function (req, res, next) {
+router.get("/:id", function(req, res, next) {
   var todoId = parseInt(req.params.id);
   var todoItem;
   //res.json("id : " + req.params.id.toString());
 
   if (!todoId) {
-    res.status(400).json({error: "Todo item id is not a number"});
+    res.status(400).json({
+      error: "Todo item id is not a number"
+    });
   }
 
-  todoItem = _.findWhere(todos, {id: todoId});
+  todoItem = _.findWhere(todos, {
+    id: todoId
+  });
 
   if (todoItem) {
     res.json(todoItem);
   } else {
-    res.status(404).json({error: "Todo item not found"});
+    res.status(404).json({
+      error: "Todo item not found"
+    });
   }
   //res.render("index", { title: "Todo item" });
 });
 
 /* Post new todos */
-router.post("", function (req, res, next) {
+router.post("", function(req, res, next) {
   var body = _.pick(req.body, "description", "completed");
-  var newTodo;
 
-  if (
-    !_.isString(body.description) ||
-    !body.description.trim() ||
-    !_.isBoolean(body.completed)
-  ) {
-    return res.status(400).json({error: "Todo description should be a string and completed a boolean"});
-  }
-
-  newTodo = {
-    id: todoNextId++,
-    description: body.description.trim(),
-    completed: body.completed
-  };
-
-  todos.push(newTodo);
-  res.json(newTodo);
+  db.todo.create(body).then(function (todo) {
+    return res.json(todo.toJSON());
+  }).catch(function (error) {
+    return res.status(400).json(error);
+  });
 });
 
 /* Post new todos */
-router.put("/:id", function (req, res, next) {
+router.put("/:id", function(req, res, next) {
   var todoId = parseInt(req.params.id);
-  var todoItem = _.findWhere(todos, {id: todoId});
+  var todoItem = _.findWhere(todos, {
+    id: todoId
+  });
   var body = _.pick(req.body, "description", "completed");
   var validAttributes = {};
 
   if (!todoId) {
-    return res.status(400).json({error: "Todo item id is not a number"});
+    return res.status(400).json({
+      error: "Todo item id is not a number"
+    });
   }
 
   if (!todoItem) {
-    return res.status(404).json({error: "Todo item not found"});
+    return res.status(404).json({
+      error: "Todo item not found"
+    });
   }
 
   if (body.hasOwnProperty("description") && _.isString(body.description) && body.description.trim()) {
@@ -92,23 +104,31 @@ router.put("/:id", function (req, res, next) {
   if (body.hasOwnProperty("completed") && _.isBoolean(body.completed)) {
     validAttributes.completed = body.completed;
   } else if (body.hasOwnProperty("completed")) {
-    res.status(400).json({error: "Completed must be boolean"});
+    res.status(400).json({
+      error: "Completed must be boolean"
+    });
   }
 
   _.extend(todoItem, validAttributes);
   res.json(todoItem);
 });
-
-router.delete("/:id", function (req, res, next) {
+/** Delete a todos item */
+router.delete("/:id", function(req, res, next) {
   var todoId = parseInt(req.params.id);
-  var todoItem = _.findWhere(todos, {id: todoId});
+  var todoItem = _.findWhere(todos, {
+    id: todoId
+  });
 
   if (!todoItem) {
-    res.status(404).json({error: "Todo item not found"});
+    res.status(404).json({
+      error: "Todo item not found"
+    });
   } else {
     todos = _.without(todos, todoItem);
     res.json(todoItem);
   }
 });
+
+db.sequelize.sync();
 
 module.exports = router;
