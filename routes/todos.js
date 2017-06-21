@@ -4,63 +4,48 @@ var router = express.Router();
 var _ = require("underscore");
 var db = require("../db.js");
 
-var todos = [
-  /*{id: 1, description: "Finish Node Course", completed: false},
-   {id: 2, description: "Initial Deploy Node Course", completed: true},
-   {id: 3, description: "Deploy Node Course V2", completed: false}*/
-];
-
-var todoNextId = 1;
-
 /* GET todos?completed=true&q=work collection */
 router.get("", function(req, res, next) {
   var queryParams = req.query;
-  var todoList = todos;
+
+  var where = {};
 
   if (queryParams.hasOwnProperty("completed") && queryParams.completed === "true") {
-    todoList = _.where(todos, {
-      completed: true
-    });
+    where.completed = true;
   } else if (queryParams.hasOwnProperty("completed") && queryParams.completed === "false") {
-    todoList = _.where(todos, {
-      completed: false
-    });
+    where.completed = false;
   }
 
   if (queryParams.hasOwnProperty("q") && queryParams.q.length > 0) {
-    console.log(" filter " + queryParams.q.toString());
-    todoList = _.filter(todoList, function(todoItem) {
-      return todoItem.description.indexOf(queryParams.q) > -1;
-    });
+    where.description = {
+      $like: "%" + queryParams.q + "%"
+    };
   }
-
-  res.json(todoList);
+  console.log(where);
+  db.todo.findAll({
+    where: where
+  }).then(function (todos) {
+    return res.json(todos);
+  }).catch(function (error) {
+    return res.status(400).json(error);
+  });
 });
 
 /* GET todos item */
 router.get("/:id", function(req, res, next) {
   var todoId = parseInt(req.params.id);
-  var todoItem;
-  //res.json("id : " + req.params.id.toString());
 
-  if (!todoId) {
-    res.status(400).json({
-      error: "Todo item id is not a number"
-    });
-  }
-
-  todoItem = _.findWhere(todos, {
-    id: todoId
+  db.todo.findById(todoId).then(function (todoItem) {
+    if (!!todoItem) {
+      res.json(todoItem);
+    } else {
+      res.status(404).json({
+        error: "Todo item not found"
+      });
+    }
+  },function (error) {
+    return res.status(500).json(error);
   });
-
-  if (todoItem) {
-    res.json(todoItem);
-  } else {
-    res.status(404).json({
-      error: "Todo item not found"
-    });
-  }
-  //res.render("index", { title: "Todo item" });
 });
 
 /* Post new todos */
@@ -77,56 +62,46 @@ router.post("", function(req, res, next) {
 /* Post new todos */
 router.put("/:id", function(req, res, next) {
   var todoId = parseInt(req.params.id);
-  var todoItem = _.findWhere(todos, {
-    id: todoId
-  });
   var body = _.pick(req.body, "description", "completed");
-  var validAttributes = {};
 
-  if (!todoId) {
-    return res.status(400).json({
-      error: "Todo item id is not a number"
-    });
-  }
+  db.todo.findById(todoId).then(function (todoItem) {
+    if (todoItem) {
+      if (body.hasOwnProperty("description")) {
+        todoItem.description = body.description.trim();
+      }
 
-  if (!todoItem) {
-    return res.status(404).json({
-      error: "Todo item not found"
-    });
-  }
+      if (body.hasOwnProperty("completed") && _.isBoolean(body.completed)) {
+        todoItem.completed = body.completed;
+      } else if (body.hasOwnProperty("completed")) {
+        res.status(400).json({
+          error: "Completed must be boolean"
+        });
+      }
 
-  if (body.hasOwnProperty("description") && _.isString(body.description) && body.description.trim()) {
-    validAttributes = body.description.trim();
-  } else if (body.hasOwnProperty("description")) {
-    return res.status(400).json("Description format error");
-  }
-
-  if (body.hasOwnProperty("completed") && _.isBoolean(body.completed)) {
-    validAttributes.completed = body.completed;
-  } else if (body.hasOwnProperty("completed")) {
-    res.status(400).json({
-      error: "Completed must be boolean"
-    });
-  }
-
-  _.extend(todoItem, validAttributes);
-  res.json(todoItem);
+      todoItem.save().then(function () {
+        res.json(todoItem);
+      });
+    } else {
+      res.status(404).json({
+        error: "Todo item not found"
+      });
+    }
+  }).catch(function (error) {
+    return res.status(400).json(error);
+  });
 });
 /** Delete a todos item */
 router.delete("/:id", function(req, res, next) {
   var todoId = parseInt(req.params.id);
-  var todoItem = _.findWhere(todos, {
-    id: todoId
+  db.todo.destroy({
+    where: {
+      id: todoId
+    }
+  }).then(function (todoItem) {
+    return res.json(todoItem);
+  }).catch(function (error) {
+    return res.status(400).json(error);
   });
-
-  if (!todoItem) {
-    res.status(404).json({
-      error: "Todo item not found"
-    });
-  } else {
-    todos = _.without(todos, todoItem);
-    res.json(todoItem);
-  }
 });
 
 db.sequelize.sync();
