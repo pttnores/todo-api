@@ -91,14 +91,17 @@ router.put("/:id", function(req, res, next) {
   });
 });
 /** Delete a todos item */
-router.delete("/:id", function(req, res, next) {
+router.delete("/:id", function (req, res, next) {
   var todoId = parseInt(req.params.id);
   db.todo.destroy({
     where: {
       id: todoId
     }
-  }).then(function (todoItem) {
-    return res.json(todoItem);
+  }).then(function (rowsDeleted) {
+    if (rowsDeleted === 0) {
+      return res.status(404).json({error: "No todo with id " + todoId});
+    }
+    return res.status(204).json(todoItem);
   }).catch(function (error) {
     return res.status(400).json(error);
   });
