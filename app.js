@@ -5,6 +5,7 @@ var logger = require('morgan');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var sassMiddleware = require('node-sass-middleware');
+var cors = require('cors');
 
 var index = require('./routes/index');
 var todos = require('./routes/todos');
@@ -29,6 +30,10 @@ app.use(sassMiddleware({
   sourceMap: true
 }));
 app.use(express.static(path.join(__dirname, 'public')));
+
+app.options('*', cors());
+
+app.use(cors());
 
 app.use('/', index);
 app.use('/todos', todos);
