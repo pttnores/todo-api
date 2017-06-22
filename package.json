@@ -2,23 +2,26 @@
   "name": "todo-api",
   "version": "0.0.0",
   "private": true,
+  "main": "app.js",
   "scripts": {
     "start": "node ./bin/www"
   },
+  "author": "Jose Nores",
+  "license": "ISC",
   "dependencies": {
-    "body-parser": "~1.17.1",
-    "cookie-parser": "~1.4.3",
+    "bcrypt": "^0.8.7",
+    "body-parser": "^1.13.3",
     "cors": "^2.8.3",
-    "debug": "~2.6.3",
     "express": "~4.15.2",
     "jade": "~1.11.0",
     "morgan": "~1.8.1",
     "node-sass-middleware": "0.9.8",
     "pg": "^6.3.1",
     "pg-hstore": "^2.3.2",
-    "sequelize": "^4.1.0",
+    "sequelize": "^3.30.4",
     "serve-favicon": "~2.4.2",
-    "sqlite": "^2.8.0",
+    "spectacle-docs": "^0.8.2",
+    "sqlite3": "^3.1.8",
     "underscore": "^1.8.3"
   }
 }

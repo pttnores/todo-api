@@ -4,7 +4,7 @@ var express = require("express");
 var router = express.Router();
 var _ = require("underscore");
 var db = require("../db.js");
-
+var bcrypt = require('bcrypt');
 router.get("", function (req, res) {
     var queryParams = req.query;
 
@@ -29,7 +29,7 @@ router.get("/:id", function (req, res) {
 
     db.user.findById(userId).then(function (user) {
         if (!!user) {
-            res.json(user);
+            res.json(user.toPublicJSON());
         } else {
             res.status(404).json({
                 error: "User not found"
@@ -45,8 +45,9 @@ router.post("/", function (req, res) {
     var body = _.pick(req.body, "email", "password");
 
     db.user.create(body).then(function (user) {
-        return res.json(user.toJSON());
+        return res.json(user.toPublicJSON());
     }).catch(function (error) {
+        console.log(error);
         return res.status(400).json(error);
     });
 });
@@ -68,14 +69,15 @@ router.put("/:id", function (req, res) {
     db.user.findById(userId).then(function (user) {
         if (user) {
             user.update(attributes).then(function (user) {
-                res.json(user.toJSON());
+                return res.json(user.toPublicJSON());
             }, function (error) {
-                res.status(400).json(error);
+                return res.status(400).json(error);
+            });
+        } else {
+            res.status(404).json({
+                error: "User not found"
             });
         }
-        res.status(404).json({
-            error: "User not found"
-        });
     }, function (error) {
         return res.status(500).json(error);
     });
@@ -95,6 +97,18 @@ router.delete("/:id", function (req, res) {
         return res.sendStatus(204);
     }).catch(function (error) {
         return res.status(400).json(error);
+    });
+});
+
+/* Post create new user */
+router.post("/login", function (req, res) {
+    var body = _.pick(req.body, "email", "password");
+
+    db.user.authenticate(body).then(function (user) {
+        return res.json(user.toPublicJSON());
+    }, function (error) {
+        console.log(error);
+        return res.sendStatus(401);
     });
 });
 
