@@ -183,6 +183,166 @@ paths:
         - todostore_auth:
             - 'write:todos'
             - 'read:todos'
+  /users:
+    get:
+      tags:
+        - user
+      summary: List of users
+      description: ''
+      operationId: getUsers
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          name: email
+          type: string
+          description: Search by email
+          required: false
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/User'
+        '304':
+          description: successful operation
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/User'
+        '405':
+          description: Invalid input
+      security:
+        - todostore_auth:
+            - 'write:users'
+            - 'read:users'
+    post:
+      tags:
+        - user
+      summary: Creates a user
+      description: ''
+      operationId: create User
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: New user
+          required: true
+          schema:
+            $ref: '#/definitions/UserCreate'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/User'
+        '405':
+          description: Invalid input
+      security:
+        - todostore_auth:
+            - 'write:todos'
+            - 'read:todos'
+  '/users/{userId}':
+    get:
+      tags:
+        - user
+      summary: Find user by ID
+      description: Returns a single user
+      operationId: getUseryId
+      produces:
+        - application/json
+      parameters:
+        - name: userId
+          in: path
+          description: ID of user to return
+          required: true
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/User'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: user not found
+      security:
+        - api_key: []
+    put:
+      tags:
+        - user
+      summary: Update an existing user
+      description: ''
+      operationId: updateUser
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: userId
+          in: path
+          description: ID of user that needs to be updated
+          required: true
+          type: integer
+          format: int64
+        - in: body
+          name: body
+          description: user object that needs to be added to the store
+          required: true
+          schema:
+            $ref: '#/definitions/UserUpdate'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/User'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: user not found
+      security:
+        - todostore_auth:
+            - 'write:users'
+            - 'read:users'
+  delete:
+    tags:
+      - user
+    summary: Deletes a user
+    description: ''
+    operationId: deleteUser
+    produces:
+      - application/json
+    parameters:
+      - name: api_key
+        in: header
+        required: false
+        type: string
+      - name: userId
+        in: path
+        description: user id to delete
+        required: true
+        type: integer
+        format: int64
+    responses:
+      '200':
+        description: 'successful operation, deleted user'
+        schema:
+          $ref: '#/definitions/User'
+      '400':
+        description: Invalid ID supplied
+      '404':
+        description: user not found
+    security:
+      - todostore_auth:
+          - 'write:users'
+          - 'read:users'
+
 securityDefinitions:
   todostore_auth:
     type: oauth2
@@ -191,6 +351,8 @@ securityDefinitions:
     scopes:
       'write:todos': modify todos in your account
       'read:todos': read your todos
+      'write:users': modify users in your account
+      'read:users': read your users
   api_key:
     type: apiKey
     name: api_key
@@ -207,17 +369,42 @@ definitions:
         description: todo status in the store
   TodoCreate:
     allOf:
-      - $ref: '#/definitions/TodoUpdate'
-      - properties:
-          id:
-            type: integer
-            format: int32
-      - required:
-          - description
+    - $ref: '#/definitions/TodoUpdate'
+    - type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+      required:
+      - description
   Todo:
     allOf:
-      - $ref: '#/definitions/TodoCreate'
-      - required:
-          - id
-          - description
-          - completed
+    - $ref: '#/definitions/TodoCreate'
+    - type: object
+      required:
+        - id
+        - description
+        - completed
+  UserCreate:
+    type: object
+    properties:
+      email:
+        type: string
+        example: a@email.com
+      password:
+        type: string
+        description: todo status in the store
+    required:
+      - email
+      - password
+  User:
+    allOf:
+    - $ref: '#/definitions/UserCreate'
+    - type: object
+      properties:
+        id:
+          type: integer
+          format: int32
+      required:
+        - id
+        - email

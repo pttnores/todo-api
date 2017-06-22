@@ -7,7 +7,7 @@ var _ = require("underscore");
 var db = require("../db.js");
 
 /* GET todos?completed=true&q=work collection */
-router.get("", function (req, res) {
+router.get("/", function (req, res) {
     var queryParams = req.query;
 
     var where = {};
@@ -51,7 +51,7 @@ router.get("/:id", function (req, res) {
 });
 
 /* Post new todos */
-router.post("", function (req, res) {
+router.post("/", function (req, res) {
     var body = _.pick(req.body, "description", "completed");
 
     db.todo.create(body).then(function (todo) {
@@ -61,7 +61,7 @@ router.post("", function (req, res) {
     });
 });
 
-/* Post new todos */
+/* Update one todoitem */
 router.put("/:id", function (req, res) {
     var todoId = parseInt(req.params.id);
     var body = _.pick(req.body, "description", "completed");
@@ -72,7 +72,6 @@ router.put("/:id", function (req, res) {
     }
 
     if (body.hasOwnProperty("completed")) {
-
         attributes.completed = body.completed;
     }
 
@@ -85,17 +84,17 @@ router.put("/:id", function (req, res) {
              res.json(todoItem);
              });*/
 
-            return todoItem.update(attributes);
+            todoItem.update(attributes).then(function (todoItem) {
+                res.json(todoItem.toJSON());
+            }, function (error) {
+                res.status(400).json(error);
+            });
         }
         res.status(404).json({
             error: "Todo item not found"
         });
     }, function (error) {
         return res.status(500).json(error);
-    }).then(function (todoItem) {
-        res.json(todoItem.toJSON());
-    }).catch(function (error) {
-        res.status(400).json(error);
     });
 });
 
@@ -114,10 +113,6 @@ router.delete("/:id", function (req, res) {
     }).catch(function (error) {
         return res.status(400).json(error);
     });
-});
-
-db.sequelize.sync().then(function () {
-    console.log("DB Synced");
 });
 
 module.exports = router;

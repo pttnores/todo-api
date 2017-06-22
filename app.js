@@ -9,6 +9,9 @@ var bodyParser = require("body-parser");
 var sassMiddleware = require("node-sass-middleware");
 var cors = require("cors");
 
+var _ = require("underscore");
+var db = require("./db.js");
+
 var index = require("./routes/index");
 var todos = require("./routes/todos");
 var users = require("./routes/users");
@@ -49,7 +52,7 @@ app.use(function (req, res, next) {
 });
 
 // error handler
-app.use(function (err, req, res, next) {
+app.use(function (err, req, res) {
     // set locals, only providing error in development
     res.locals.message = err.message;
     res.locals.error = req.app.get("env") === "development"
@@ -62,3 +65,8 @@ app.use(function (err, req, res, next) {
 });
 
 module.exports = app;
+var db = require("./db.js");
+
+db.sequelize.sync().then(function () {
+    console.log("DB Synced");
+});
