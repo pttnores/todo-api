@@ -1,0 +1,223 @@
+swagger: '2.0'
+info:
+  description: Todo API.
+  version: 1.0.0
+  title: Pttnores Todo API
+  contact:
+    email: pttnores@gmail.com
+  license:
+    name: Apache 2.0
+    url: 'http://www.apache.org/licenses/LICENSE-2.0.html'
+host: pttnores-todo-api.herokuapp.com
+basePath: /
+tags:
+  - name: todos
+    description: Everything about your todos
+    externalDocs:
+      description: Find out more
+      url: 'http://jose-nores.com/todo-api'
+schemes:
+  - https
+paths:
+  /todos:
+    get:
+      tags:
+        - todo
+      summary: List of todos
+      description: ''
+      operationId: getTodos
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: query
+          name: completed
+          type: boolean
+          description: Filter by completed status
+          required: false
+        - in: query
+          name: q
+          type: string
+          description: 'Filter by Description '
+          required: false
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Todo'
+        '304':
+          description: successful operation
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Todo'
+        '405':
+          description: Invalid input
+      security:
+        - todostore_auth:
+            - 'write:todos'
+            - 'read:todos'
+    post:
+      tags:
+        - todo
+      summary: Creates a todo
+      description: ''
+      operationId: create Todo
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - in: body
+          name: body
+          description: New todo
+          required: true
+          schema:
+            $ref: '#/definitions/TodoCreate'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Todo'
+        '405':
+          description: Invalid input
+      security:
+        - todostore_auth:
+            - 'write:todos'
+            - 'read:todos'
+  '/todos/{todoId}':
+    get:
+      tags:
+        - todo
+      summary: Find todo by ID
+      description: Returns a single todo
+      operationId: gettodoById
+      produces:
+        - application/json
+      parameters:
+        - name: todoId
+          in: path
+          description: ID of todo to return
+          required: true
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Todo'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: todo not found
+      security:
+        - api_key: []
+    put:
+      tags:
+        - todo
+      summary: Update an existing todo
+      description: ''
+      operationId: updateTodo
+      consumes:
+        - application/json
+      produces:
+        - application/json
+      parameters:
+        - name: todoId
+          in: path
+          description: ID of todo that needs to be updated
+          required: true
+          type: integer
+          format: int64
+        - in: body
+          name: body
+          description: todo object that needs to be added to the store
+          required: true
+          schema:
+            $ref: '#/definitions/TodoUpdate'
+      responses:
+        '200':
+          description: successful operation
+          schema:
+            $ref: '#/definitions/Todo'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: todo not found
+      security:
+        - todostore_auth:
+            - 'write:todos'
+            - 'read:todos'
+    delete:
+      tags:
+        - todo
+      summary: Deletes a todo
+      description: ''
+      operationId: deletetodo
+      produces:
+        - application/json
+      parameters:
+        - name: api_key
+          in: header
+          required: false
+          type: string
+        - name: todoId
+          in: path
+          description: todo id to delete
+          required: true
+          type: integer
+          format: int64
+      responses:
+        '200':
+          description: 'successful operation, deleted todo'
+          schema:
+            $ref: '#/definitions/Todo'
+        '400':
+          description: Invalid ID supplied
+        '404':
+          description: todo not found
+      security:
+        - todostore_auth:
+            - 'write:todos'
+            - 'read:todos'
+securityDefinitions:
+  todostore_auth:
+    type: oauth2
+    authorizationUrl: 'http://todostore.swagger.io/oauth/dialog'
+    flow: implicit
+    scopes:
+      'write:todos': modify todos in your account
+      'read:todos': read your todos
+  api_key:
+    type: apiKey
+    name: api_key
+    in: header
+definitions:
+  TodoUpdate:
+    type: object
+    properties:
+      description:
+        type: string
+        example: Wash my hands
+      completed:
+        type: boolean
+        description: todo status in the store
+  TodoCreate:
+    allOf:
+      - $ref: '#/definitions/TodoUpdate'
+      - properties:
+          id:
+            type: integer
+            format: int32
+      - required:
+          - description
+  Todo:
+    allOf:
+      - $ref: '#/definitions/TodoCreate'
+      - required:
+          - id
+          - description
+          - completed

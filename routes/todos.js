@@ -1,3 +1,5 @@
+"use strict";
+
 var express = require("express");
 var router = express.Router();
 //var bodyParser = require("body-parser");
@@ -5,108 +7,117 @@ var _ = require("underscore");
 var db = require("../db.js");
 
 /* GET todos?completed=true&q=work collection */
-router.get("", function(req, res, next) {
-  var queryParams = req.query;
+router.get("", function (req, res) {
+    var queryParams = req.query;
 
-  var where = {};
+    var where = {};
 
-  if (queryParams.hasOwnProperty("completed") && queryParams.completed === "true") {
-    where.completed = true;
-  } else if (queryParams.hasOwnProperty("completed") && queryParams.completed === "false") {
-    where.completed = false;
-  }
+    if (queryParams.hasOwnProperty("completed") && queryParams.completed === "true") {
+        where.completed = true;
+    } else if (queryParams.hasOwnProperty("completed") && queryParams.completed === "false") {
+        where.completed = false;
+    }
 
-  if (queryParams.hasOwnProperty("q") && queryParams.q.length > 0) {
-    where.description = {
-      $like: "%" + queryParams.q + "%"
-    };
-  }
-  console.log(where);
-  db.todo.findAll({
-    where: where
-  }).then(function (todos) {
-    return res.json(todos);
-  }).catch(function (error) {
-    return res.status(400).json(error);
-  });
+    if (queryParams.hasOwnProperty("q") && queryParams.q.length > 0) {
+        where.description = {
+            $like: "%" + queryParams.q + "%"
+        };
+    }
+    console.log(where);
+    db.todo.findAll({
+        where: where
+    }).then(function (todos) {
+        return res.json(todos);
+    }).catch(function (error) {
+        return res.status(400).json(error);
+    });
 });
 
 /* GET todos item */
-router.get("/:id", function(req, res, next) {
-  var todoId = parseInt(req.params.id);
+router.get("/:id", function (req, res) {
+    var todoId = parseInt(req.params.id);
 
-  db.todo.findById(todoId).then(function (todoItem) {
-    if (!!todoItem) {
-      res.json(todoItem);
-    } else {
-      res.status(404).json({
-        error: "Todo item not found"
-      });
+    db.todo.findById(todoId).then(function (todoItem) {
+        if (!!todoItem) {
+            res.json(todoItem);
+        } else {
+            res.status(404).json({
+                error: "Todo item not found"
+            });
+        }
+    }, function (error) {
+        return res.status(500).json(error);
+    });
+});
+
+/* Post new todos */
+router.post("", function (req, res) {
+    var body = _.pick(req.body, "description", "completed");
+
+    db.todo.create(body).then(function (todo) {
+        return res.json(todo.toJSON());
+    }).catch(function (error) {
+        return res.status(400).json(error);
+    });
+});
+
+/* Post new todos */
+router.put("/:id", function (req, res) {
+    var todoId = parseInt(req.params.id);
+    var body = _.pick(req.body, "description", "completed");
+    var attributes = {};
+
+    if (body.hasOwnProperty("description")) {
+        attributes.description = body.description.trim();
     }
-  },function (error) {
-    return res.status(500).json(error);
-  });
-});
 
-/* Post new todos */
-router.post("", function(req, res, next) {
-  var body = _.pick(req.body, "description", "completed");
+    if (body.hasOwnProperty("completed")) {
 
-  db.todo.create(body).then(function (todo) {
-    return res.json(todo.toJSON());
-  }).catch(function (error) {
-    return res.status(400).json(error);
-  });
-});
+        attributes.completed = body.completed;
+    }
 
-/* Post new todos */
-router.put("/:id", function(req, res, next) {
-  var todoId = parseInt(req.params.id);
-  var body = _.pick(req.body, "description", "completed");
+    db.todo.findById(todoId).then(function (todoItem) {
+        if (todoItem) {
+            /*
+             todoItem.description = body.description.trim();
+             todoItem.completed = body.completed;
+             todoItem.save().then(function () {
+             res.json(todoItem);
+             });*/
 
-  db.todo.findById(todoId).then(function (todoItem) {
-    if (todoItem) {
-      if (body.hasOwnProperty("description")) {
-        todoItem.description = body.description.trim();
-      }
-
-      if (body.hasOwnProperty("completed") && _.isBoolean(body.completed)) {
-        todoItem.completed = body.completed;
-      } else if (body.hasOwnProperty("completed")) {
-        res.status(400).json({
-          error: "Completed must be boolean"
+            return todoItem.update(attributes);
+        }
+        res.status(404).json({
+            error: "Todo item not found"
         });
-      }
-
-      todoItem.save().then(function () {
-        res.json(todoItem);
-      });
-    } else {
-      res.status(404).json({
-        error: "Todo item not found"
-      });
-    }
-  }).catch(function (error) {
-    return res.status(400).json(error);
-  });
+    }, function (error) {
+        return res.status(500).json(error);
+    }).then(function (todoItem) {
+        res.json(todoItem.toJSON());
+    }).catch(function (error) {
+        res.status(400).json(error);
+    });
 });
+
 /** Delete a todos item */
-router.delete("/:id", function (req, res, next) {
-  var todoId = parseInt(req.params.id);
-  db.todo.destroy({
-    where: {
-      id: todoId
-    }
-  }).then(function (rowsDeleted) {
-    if (rowsDeleted === 0) {
-      return res.status(404).json({error: "No todo with id " + todoId});
-    }
-    return res.status(204).json(todoItem);
-  }).catch(function (error) {
-    return res.status(400).json(error);
-  });
+router.delete("/:id", function (req, res) {
+    var todoId = parseInt(req.params.id);
+    db.todo.destroy({
+        where: {
+            id: todoId
+        }
+    }).then(function (rowsDeleted) {
+        if (rowsDeleted === 0) {
+            return res.status(404).json({error: "No todo with id " + todoId});
+        }
+        return res.sendStatus(204);
+    }).catch(function (error) {
+        return res.status(400).json(error);
+    });
 });
 
-db.sequelize.sync();
+db.sequelize.sync().then(function () {
+    console.log("DB Synced");
+});
 
 module.exports = router;
