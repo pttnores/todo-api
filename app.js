@@ -65,6 +65,6 @@ app.use(function (err, req, res) {
 module.exports = app;
 var db = require("./db.js");
 
-db.sequelize.sync({force:true}).then(function () {
+db.sequelize.sync(/*{force:true}*/).then(function () {
     console.log("DB Synced");
 });
