@@ -5,9 +5,10 @@ var router = express.Router();
 //var bodyParser = require("body-parser");
 var _ = require("underscore");
 var db = require("../db.js");
+var middleware = require("../middleware.js")(db);
 
 /* GET todos?completed=true&q=work collection */
-router.get("/", function (req, res) {
+router.get("/", middleware.requireAuthentication, function (req, res) {
     var queryParams = req.query;
 
     var where = {};
@@ -34,7 +35,7 @@ router.get("/", function (req, res) {
 });
 
 /* GET todos item */
-router.get("/:id", function (req, res) {
+router.get("/:id", middleware.requireAuthentication, function (req, res) {
     var todoId = parseInt(req.params.id);
 
     db.todo.findById(todoId).then(function (todoItem) {
@@ -51,7 +52,7 @@ router.get("/:id", function (req, res) {
 });
 
 /* Post new todos */
-router.post("/", function (req, res) {
+router.post("/", middleware.requireAuthentication, function (req, res) {
     var body = _.pick(req.body, "description", "completed");
 
     db.todo.create(body).then(function (todo) {
@@ -62,7 +63,7 @@ router.post("/", function (req, res) {
 });
 
 /* Update one todoitem */
-router.put("/:id", function (req, res) {
+router.put("/:id", middleware.requireAuthentication, function (req, res) {
     var todoId = parseInt(req.params.id);
     var body = _.pick(req.body, "description", "completed");
     var attributes = {};
@@ -99,7 +100,7 @@ router.put("/:id", function (req, res) {
 });
 
 /** Delete a todos item */
-router.delete("/:id", function (req, res) {
+router.delete("/:id", middleware.requireAuthentication, function (req, res) {
     var todoId = parseInt(req.params.id);
     db.todo.destroy({
         where: {

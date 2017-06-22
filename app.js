@@ -2,7 +2,6 @@
 
 var express = require("express");
 var path = require("path");
-var favicon = require("serve-favicon");
 var logger = require("morgan");
 var bodyParser = require("body-parser");
 var sassMiddleware = require("node-sass-middleware");
@@ -10,6 +9,7 @@ var cors = require("cors");
 
 var _ = require("underscore");
 var db = require("./db.js");
+var middleware = require("./middleware.js");
 
 var index = require("./routes/index");
 var todos = require("./routes/todos");

@@ -2,8 +2,8 @@
 
 var bcrypt = require("bcrypt");
 var _ = require("underscore");
-var cryptojs = require('crypto-js');
-var jwt = require('jsonwebtoken');
+var cryptojs = require("crypto-js");
+var jwt = require("jsonwebtoken");
 
 module.exports = function (sequelize, DataTypes) {
     var user = sequelize.define("user", {
@@ -70,6 +70,28 @@ module.exports = function (sequelize, DataTypes) {
                         reject(error);
                     });
                 });
+            },
+            findByToken: function (token) {
+                return new Promise(function (resolve, reject) {
+                    try {
+                        var decodedJWT = jwt.verify(token, "elkjqwe654");
+                        var bytes = cryptojs.AES.decrypt(decodedJWT.token, "abc123!@#!");
+                        var tokenData = JSON.parse(bytes.toString(cryptojs.enc.Utf8));
+
+                        user.findById(tokenData.id).then(function (user) {
+                            if (user) {
+                                resolve(tokenData);
+                            } else {
+                                reject();
+                            }
+                        }, function (error) {
+                            reject(error);
+                        });
+
+                    } catch (error) {
+                        reject(error);
+                    }
+                });
             }
         },
         instanceMethods: {
@@ -82,9 +104,9 @@ module.exports = function (sequelize, DataTypes) {
                     return undefined;
                 }
                 try {
-                    var stringData = JSON.stringify({id: this.get('id'), type: type});
-                    var encryptedData = cryptojs.AES.encrypt(stringData, 'abc123!@#!').toString();
-                    var token = jwt.sign({token: encryptedData}, 'elkjqwe654');
+                    var stringData = JSON.stringify({id: this.get("id"), type: type});
+                    var encryptedData = cryptojs.AES.encrypt(stringData, "abc123!@#!").toString();
+                    var token = jwt.sign({token: encryptedData}, "elkjqwe654");
                     return token;
                 } catch (error) {
                     console.log(error);

@@ -4,8 +4,9 @@ var express = require("express");
 var router = express.Router();
 var _ = require("underscore");
 var db = require("../db.js");
-var bcrypt = require('bcrypt');
-router.get("", function (req, res) {
+var middleware = require("../middleware.js")(db);
+
+router.get("/", middleware.requireAuthentication, function (req, res) {
     var queryParams = req.query;
 
     var where = {};
@@ -24,7 +25,7 @@ router.get("", function (req, res) {
 });
 
 /* GET user*/
-router.get("/:id", function (req, res) {
+router.get("/:id", middleware.requireAuthentication, function (req, res) {
     var userId = parseInt(req.params.id);
 
     db.user.findById(userId).then(function (user) {
@@ -41,7 +42,7 @@ router.get("/:id", function (req, res) {
 });
 
 /* Post create new user */
-router.post("/", function (req, res) {
+router.post("/", middleware.requireAuthentication, function (req, res) {
     var body = _.pick(req.body, "email", "password");
 
     db.user.create(body).then(function (user) {
@@ -53,7 +54,7 @@ router.post("/", function (req, res) {
 });
 
 /* Update one user */
-router.put("/:id", function (req, res) {
+router.put("/:id", middleware.requireAuthentication, function (req, res) {
     var userId = parseInt(req.params.id);
     var body = _.pick(req.body, "email", "password");
     var attributes = {};
@@ -84,7 +85,7 @@ router.put("/:id", function (req, res) {
 });
 
 /** Delete a user */
-router.delete("/:id", function (req, res) {
+router.delete("/:id", middleware.requireAuthentication, function (req, res) {
     var userId = parseInt(req.params.id);
     db.user.destroy({
         where: {
@@ -105,9 +106,9 @@ router.post("/login", function (req, res) {
     var body = _.pick(req.body, "email", "password");
 
     db.user.authenticate(body).then(function (user) {
-        var token = user.generateToken('authentication');
+        var token = user.generateToken("authentication");
         if (token) {
-            return res.header('Auth', token).json(user.toPublicJSON());
+            return res.header("Auth", token).json(user.toPublicJSON());
         } else {
             return res.sendStatus(401);
         }
