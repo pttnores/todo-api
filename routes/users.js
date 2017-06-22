@@ -105,7 +105,12 @@ router.post("/login", function (req, res) {
     var body = _.pick(req.body, "email", "password");
 
     db.user.authenticate(body).then(function (user) {
-        return res.json(user.toPublicJSON());
+        var token = user.generateToken('authentication');
+        if (token) {
+            return res.header('Auth', token).json(user.toPublicJSON());
+        } else {
+            return res.sendStatus(401);
+        }
     }, function (error) {
         console.log(error);
         return res.sendStatus(401);
