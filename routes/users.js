@@ -42,7 +42,7 @@ router.get("/:id", middleware.requireAuthentication, function (req, res) {
 });
 
 /* Post create new user */
-router.post("/", middleware.requireAuthentication, function (req, res) {
+router.post("/", /*middleware.requireAuthentication,*/ function (req, res) {
     var body = _.pick(req.body, "email", "password");
 
     db.user.create(body).then(function (user) {

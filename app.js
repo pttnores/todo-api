@@ -7,9 +7,7 @@ var bodyParser = require("body-parser");
 var sassMiddleware = require("node-sass-middleware");
 var cors = require("cors");
 
-var _ = require("underscore");
 var db = require("./db.js");
-var middleware = require("./middleware.js");
 
 var index = require("./routes/index");
 var todos = require("./routes/todos");
@@ -63,8 +61,9 @@ app.use(function (err, req, res) {
 });
 
 module.exports = app;
-var db = require("./db.js");
 
-db.sequelize.sync(/*{force:true}*/).then(function () {
+db.sequelize.sync({
+    force:true
+}).then(function () {
     console.log("DB Synced");
 });

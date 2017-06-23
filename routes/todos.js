@@ -11,7 +11,7 @@ var middleware = require("../middleware.js")(db);
 router.get("/", middleware.requireAuthentication, function (req, res) {
     var queryParams = req.query;
 
-    var where = {};
+    var where = {userId: req.user.get("id")};
 
     if (queryParams.hasOwnProperty("completed") && queryParams.completed === "true") {
         where.completed = true;
@@ -37,8 +37,9 @@ router.get("/", middleware.requireAuthentication, function (req, res) {
 /* GET todos item */
 router.get("/:id", middleware.requireAuthentication, function (req, res) {
     var todoId = parseInt(req.params.id);
+    var where = {id: todoId, userId: req.user.get("id")};
 
-    db.todo.findById(todoId).then(function (todoItem) {
+    db.todo.findOne(where).then(function (todoItem) {
         if (!!todoItem) {
             res.json(todoItem);
         } else {
@@ -56,9 +57,16 @@ router.post("/", middleware.requireAuthentication, function (req, res) {
     var body = _.pick(req.body, "description", "completed");
 
     db.todo.create(body).then(function (todo) {
-        return res.json(todo.toJSON());
-    }).catch(function (error) {
+        var b = req.user;
+        req.user.addTodo(todo).then(function () {
+            return todo.reload();
+        }).then(function (todo) {
+            return res.json(todo.toJSON());
+        });
+    }, function (error) {
         return res.status(400).json(error);
+    }).catch(function (error) {
+        return res.status(500).json(error);
     });
 });
 
@@ -67,6 +75,8 @@ router.put("/:id", middleware.requireAuthentication, function (req, res) {
     var todoId = parseInt(req.params.id);
     var body = _.pick(req.body, "description", "completed");
     var attributes = {};
+    var where = {id: todoId, userId: req.user.get("id")};
+
 
     if (body.hasOwnProperty("description")) {
         attributes.description = body.description.trim();
@@ -76,15 +86,8 @@ router.put("/:id", middleware.requireAuthentication, function (req, res) {
         attributes.completed = body.completed;
     }
 
-    db.todo.findById(todoId).then(function (todoItem) {
+    db.todo.findOne(where).then(function (todoItem) {
         if (todoItem) {
-            /*
-             todoItem.description = body.description.trim();
-             todoItem.completed = body.completed;
-             todoItem.save().then(function () {
-             res.json(todoItem);
-             });*/
-
             todoItem.update(attributes).then(function (todoItem) {
                 res.json(todoItem.toJSON());
             }, function (error) {
@@ -104,7 +107,8 @@ router.delete("/:id", middleware.requireAuthentication, function (req, res) {
     var todoId = parseInt(req.params.id);
     db.todo.destroy({
         where: {
-            id: todoId
+            id: todoId,
+            userId: req.user.get("id")
         }
     }).then(function (rowsDeleted) {
         if (rowsDeleted === 0) {
